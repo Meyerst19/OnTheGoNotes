@@ -1,4 +1,4 @@
-const { offlineFallback, warmStrategyCache } = require("workbox-recipes");
+const { warmStrategyCache } = require("workbox-recipes");
 const { CacheFirst, StaleWhileRevalidate } = require("workbox-strategies");
 const { registerRoute } = require("workbox-routing");
 const { CacheableResponsePlugin } = require("workbox-cacheable-response");
@@ -19,17 +19,17 @@ const pageCache = new CacheFirst({
   ],
 });
 
-const assetCache = new StaleWhileRevalidate({
-  cacheName: "asset-cache",
-  plugins: [
-    new CacheableResponsePlugin({
-      statuses: [0, 200],
-    }),
-    new ExpirationPlugin({
-      maxAgeSeconds: 30 * 24 * 60 * 60,
-    }),
-  ],
-});
+// const assetCache = new StaleWhileRevalidate({
+//   cacheName: "asset-cache",
+//   plugins: [
+//     new CacheableResponsePlugin({
+//       statuses: [0, 200],
+//     }),
+//     new ExpirationPlugin({
+//       maxAgeSeconds: 30 * 24 * 60 * 60,
+//     }),
+//   ],
+// });
 
 warmStrategyCache({
   urls: ["/index.html", "/"],
@@ -41,7 +41,18 @@ registerRoute(({ request }) => request.mode === "navigate", pageCache);
 // TODO: Implement asset caching
 registerRoute(
   ({ request }) => ["style", "script", "worker"].includes(request.destination),
-  assetCache
+  new StaleWhileRevalidate({
+    // Name of the cache storage.
+    cacheName: "asset-cache",
+    plugins: [
+      // This plugin will cache responses with these headers to a maximum-age of 30 days
+      new CacheableResponsePlugin({
+        statuses: [0, 200],
+      }),
+    ],
+  })
+  // ({ request }) => ["style", "script", "worker"].includes(request.destination),
+  // assetCache
 );
 
-offlineFallback({ urls: ["/index.html", "/"], strategy: assetCache });
+// offlineFallback({ urls: ["/index.html", "/"], strategy: assetCache });
